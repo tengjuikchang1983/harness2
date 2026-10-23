@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% import "macros.html" as ui %}
+{% block content %}
+<div class="pagehead">
+  <h2>{{ entry.name }}</h2>
+  <span class="chip">{{ entry.source }}</span>
+  <span class="chip">{{ entry.path }}</span>
+  {{ ui.ns_badge(entry) }}
+</div>
+<div class="stats">
+  <div class="stat"><div class="k">Tasks</div><div class="v">{{ rows|length }}</div></div>
+  <div class="stat"><div class="k">Done</div><div class="v">{{ entry.done }}</div></div>
+  <div class="stat"><div class="k">Failed</div><div class="v">{{ entry.failed }}</div></div>
+  {% if entry.mean_score is not none %}
+  <div class="stat"><div class="k">Mean score</div><div class="v">{{ "%.2f"|format(entry.mean_score) }}</div></div>
+  {% endif %}
+</div>
+<div class="section-title">Tasks</div>
+<table>
+  <tr><th>Task</th><th>Status</th><th>Modes</th><th>Selected harness</th><th>Score</th></tr>
+  {% for row in rows %}
+  <tr>
+    <td class="mono"><a href="/ns/{{ entry.name|urlencode }}/task/{{ row.task|urlencode }}/harness" style="color:var(--accent)">{{ row.task }}</a></td>
+    <td>{{ ui.status_badge(row.status) }}</td>
+    <td class="mono">{{ row.modes|join(", ") if row.modes else "—" }}</td>
+    <td class="mono">
+      {%- for mode, sel in row.selections|dictsort -%}
+        {{ mode }}: {{ sel.get("chosen_label", "—") }}{% if not loop.last %}<br>{% endif %}
+      {%- else -%}—
+      {%- endfor -%}
+    </td>
+    <td class="mono">{{ "%.2f"|format(row.score) if row.score is not none else "—" }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5" class="note">No task summaries found.</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

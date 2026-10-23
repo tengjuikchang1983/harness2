@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="pagehead"><h2>An action is already running</h2></div>
+<p class="note">
+  Only one action can run at a time;
+  {% if running %}
+  <a href="/actions/{{ running.id }}" style="color:var(--accent)">{{ running.id }}</a>
+  ({{ running.kind }}, started {{ running.started_at }}) is still running.
+  {% else %}
+  another action just started.
+  {% endif %}
+</p>
+{% endblock %}

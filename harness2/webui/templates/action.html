@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="pagehead">
+  <h2>Action {{ action.id }}</h2>
+  {% if action.status == "running" %}
+    <span class="badge b-warn">running</span>
+  {% elif action.status == "done" %}
+    <span class="badge b-ok">done</span>
+  {% else %}
+    <span class="badge b-bad">{{ action.status }}</span>
+  {% endif %}
+  <span class="chip">{{ action.kind }}</span>
+</div>
+<table style="max-width: 900px">
+  <tr><th>argv</th><td class="mono">{{ action.argv|join(" ") }}</td></tr>
+  <tr><th>started</th><td class="mono">{{ action.started_at }}</td></tr>
+  <tr><th>ended</th><td class="mono">{{ action.ended_at or "—" }}</td></tr>
+  <tr><th>exit code</th><td class="mono">{{ action.exit_code if action.exit_code is not none else "—" }}</td></tr>
+  <tr><th>log</th><td class="mono">{{ action.log_path }}</td></tr>
+</table>
+<div class="section-title">Log</div>
+<pre id="log" style="background:#141413; color:#c9e7c9; border-color:#2a2a28; min-height:220px">{{ existing_log if action.status != "running" }}</pre>
+{% if action.status == "running" %}
+<script>
+  const logEl = document.getElementById("log");
+  const es = new EventSource("/actions/{{ action.id }}/stream");
+  es.onmessage = (e) => {
+    logEl.textContent += e.data + "\n";
+    logEl.scrollTop = logEl.scrollHeight;
+  };
+  es.addEventListener("end", () => { es.close(); location.reload(); });
+</script>
+{% endif %}
+{% endblock %}

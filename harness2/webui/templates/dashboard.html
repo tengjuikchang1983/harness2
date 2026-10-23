@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="pagehead">
+  <h2>Dashboard</h2>
+  <span class="chip">{{ runs_dir }}</span>
+</div>
+<div class="stats">
+  <div class="stat"><div class="k">Namespaces</div><div class="v">{{ entries|length }}</div></div>
+  <div class="stat"><div class="k">Tasks</div><div class="v">{{ total_tasks }}</div></div>
+  <div class="stat"><div class="k">Done</div><div class="v">{{ total_done }}</div></div>
+  <div class="stat"><div class="k">Failed</div><div class="v">{{ total_failed }}</div></div>
+  {% if overall_score is not none %}
+  <div class="stat"><div class="k">Mean score (judged)</div><div class="v">{{ "%.2f"|format(overall_score) }}</div></div>
+  {% endif %}
+</div>
+<div class="section-title">Namespaces</div>
+<table>
+  <tr><th>Name</th><th>Source</th><th>Path</th><th>Tasks</th><th>Done</th><th>Failed</th><th>Mean score</th></tr>
+  {% for ns in entries %}
+  <tr>
+    <td class="mono"><a href="/ns/{{ ns.name|urlencode }}" style="color:var(--accent)">{{ ns.name }}</a></td>
+    <td class="mono">{{ ns.source }}</td>
+    <td class="mono">{{ ns.path }}</td>
+    <td class="mono">{{ ns.n_tasks }}</td>
+    <td class="mono">{{ ns.done }}</td>
+    <td class="mono">{{ ns.failed }}</td>
+    <td class="mono">{{ "%.2f"|format(ns.mean_score) if ns.mean_score is not none else "—" }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="7" class="note">No runs yet. “Run demo” on the left executes harness2-demo --k 2.</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

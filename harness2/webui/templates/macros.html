@@ -1,0 +1,21 @@
+{% macro ns_badge(ns) -%}
+  {%- if ns.source == "demo" -%}
+    <span class="badge b-dim">demo</span>
+  {%- elif ns.mean_score is not none -%}
+    <span class="badge b-ok">{{ "%.2f"|format(ns.mean_score) }}</span>
+  {%- elif ns.failed -%}
+    <span class="badge b-bad">{{ ns.failed }} failed</span>
+  {%- else -%}
+    <span class="badge b-dim">{{ ns.done }}/{{ ns.n_tasks }}</span>
+  {%- endif %}
+{%- endmacro %}
+
+{% macro status_badge(status) -%}
+  {%- if status in ("ok", "done") -%}
+    <span class="badge b-ok">{{ status }}</span>
+  {%- elif status in ("partial", "skipped", "running") -%}
+    <span class="badge b-warn">{{ status }}</span>
+  {%- else -%}
+    <span class="badge b-bad">{{ status }}</span>
+  {%- endif %}
+{%- endmacro %}

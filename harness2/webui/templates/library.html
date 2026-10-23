@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="pagehead">
+  <h2>Library</h2>
+  <span class="chip">{{ runs_dir }}/library</span>
+</div>
+{% for domain in domains %}
+  <div class="section-title">{{ domain.name }}</div>
+  <div class="chip">{{ domain.path }}</div>
+  {% if domain.git_versioned %}
+    {% if domain.git_log %}
+    <pre style="margin-top: 8px">{{ domain.git_log }}</pre>
+    {% else %}
+    <p class="note" style="margin-top: 8px">git log unavailable in {{ domain.path }}.</p>
+    {% endif %}
+  {% else %}
+    <p class="note" style="margin-top: 8px">This library is not git-versioned yet.</p>
+  {% endif %}
+  {% if domain.experience is not none %}
+    <div class="section-title">EXPERIENCE.md</div>
+    <pre>{{ domain.experience }}</pre>
+  {% endif %}
+{% else %}
+  <p class="note">No library domains under {{ runs_dir }}/library yet.</p>
+{% endfor %}
+{% endblock %}

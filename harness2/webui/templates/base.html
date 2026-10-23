@@ -1,0 +1,95 @@
+{% import "macros.html" as ui %}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}harness2 console{% endblock %}</title>
+<style>
+  :root {
+    --bg: #f6f6f3; --panel: #ffffff; --ink: #1c1c1a; --muted: #6b6b66;
+    --line: #e4e4de; --accent: #4440d6; --accent-soft: #ececfb;
+    --ok: #1a7f37; --warn: #9a6700; --bad: #b42318; --mono: ui-monospace, Menlo, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 14px/1.5 -apple-system, "Helvetica Neue", sans-serif; }
+  a { color: inherit; text-decoration: none; }
+  code, .mono { font-family: var(--mono); font-size: 12.5px; }
+  #console { display: grid; grid-template-columns: 264px 1fr; min-height: 100vh; }
+  aside { background: var(--panel); border-right: 1px solid var(--line); padding: 16px 12px; }
+  aside h1 { font-size: 15px; padding: 0 6px 12px; }
+  aside h1 a { color: var(--accent); }
+  .nav a { display: block; padding: 7px 10px; border-radius: 7px; font-size: 13.5px; }
+  .nav a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .ns-head { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 18px 6px 6px; }
+  .ns { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 7px; }
+  .ns:hover { background: #f0f0ea; }
+  .ns.sel { background: #efefe9; }
+  .ns .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  main { padding: 20px 24px 0; display: flex; flex-direction: column; min-width: 0; }
+  .pagehead { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  .pagehead h2 { font-size: 19px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 18px; max-width: 900px; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .stat .k { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .stat .v { font-size: 20px; font-weight: 650; margin-top: 2px; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  th, td { padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  tr:last-child td { border-bottom: 0; }
+  .section-title { font-size: 13px; font-weight: 650; margin: 18px 0 8px; }
+  .badge { display: inline-block; border-radius: 10px; padding: 0 8px; font-size: 11.5px; font-family: var(--mono); }
+  .b-ok { background: #e6f4ea; color: var(--ok); }
+  .b-warn { background: #fff4e0; color: var(--warn); }
+  .b-bad { background: #fdecea; color: var(--bad); }
+  .b-dim { background: #efefea; color: var(--muted); }
+  .chip { font-family: var(--mono); font-size: 11.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 5px; padding: 1px 7px; background: var(--panel); }
+  .btn { background: var(--accent); color: #fff; border: 0; border-radius: 7px; padding: 8px 18px; font-size: 13.5px; cursor: pointer; }
+  .note { color: var(--muted); font-size: 13px; }
+  pre { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow: auto; font-family: var(--mono); font-size: 12px; white-space: pre-wrap; word-break: break-word; }
+  .logtail { margin-top: auto; background: #141413; color: #c9e7c9; font-family: var(--mono); font-size: 12px; border-radius: 10px 10px 0 0; padding: 12px 16px; height: 148px; overflow: auto; }
+  .logtail .t { color: #6f6f68; }
+  .logtail a { color: #c9c9ff; }
+  {% block style %}{% endblock %}
+</style>
+</head>
+<body>
+<div id="console">
+  <aside>
+    <h1><a href="/">harness2</a></h1>
+    <nav class="nav">
+      <a href="/" class="{{ 'active' if active|default('') == 'dashboard' }}">Dashboard</a>
+      <a href="/library" class="{{ 'active' if active|default('') == 'library' }}">Library</a>
+    </nav>
+    <div class="ns-head">Namespaces</div>
+    {% for ns in namespaces %}
+      <a class="ns {{ 'sel' if current_ns|default('') == ns.name }}" href="/ns/{{ ns.name|urlencode }}">
+        <span class="mono">{{ ns.name }}</span>
+        {{ ui.ns_badge(ns) }}
+      </a>
+    {% else %}
+      <div class="note" style="padding: 0 8px">no runs yet</div>
+    {% endfor %}
+    <div class="ns-head">Actions</div>
+    <form method="post" action="/actions/demo" style="padding: 0 6px">
+      <button class="btn" type="submit">Run demo (--k 2)</button>
+    </form>
+  </aside>
+  <main>
+    {% block content %}{% endblock %}
+    <div class="logtail">
+      {% if latest_action %}
+      <div><span class="t">latest action</span> <a href="/actions/{{ latest_action.id }}">{{ latest_action.id }}</a>
+        <span class="t">· {{ latest_action.kind }} · {{ latest_action.status }}
+        · log: {{ latest_action.log_path }}</span></div>
+      {% for line in latest_log %}
+      <div>{{ line }}</div>
+      {% endfor %}
+      {% else %}
+      <div><span class="t">no actions yet — “Run demo” starts harness2-demo --k 2 and streams its log here</span></div>
+      {% endif %}
+    </div>
+  </main>
+</div>
+</body>
+</html>

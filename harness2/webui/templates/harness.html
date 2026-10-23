@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block style %}
+  .hg { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 14px; max-width: 1240px; }
+  .group { border: 1.5px solid; border-radius: 12px; padding: 10px 12px; background: var(--panel); }
+  .g-blue { border-color: #91a7f0; } .g-blue .gtitle { color: #3b5bdb; }
+  .g-purple { border-color: #b197fc; } .g-purple .gtitle { color: #7048e8; }
+  .g-green { border-color: #8ce99a; } .g-green .gtitle { color: #2f9e44; }
+  .g-pink { border-color: #faa2c1; } .g-pink .gtitle { color: #c2255c; }
+  .gtitle { font-size: 13px; font-weight: 700; }
+  .gsub { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+  .comp { display: block; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; margin-bottom: 6px; background: #fff; }
+  .comp:last-child { margin-bottom: 0; }
+  details.comp summary { display: flex; gap: 8px; align-items: center; cursor: pointer; list-style: none; }
+  details.comp summary::-webkit-details-marker { display: none; }
+  .comp:hover { border-color: var(--accent); }
+  .cn { font-family: var(--mono); font-size: 10.5px; color: #fff; border-radius: 4px; padding: 1px 5px; background: #868e96; flex: none; }
+  .cn-blue { background: #3b5bdb; } .cn-purple { background: #7048e8; }
+  .cn-green { background: #2f9e44; } .cn-pink { background: #c2255c; }
+  .file { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .when { margin-left: auto; flex: none; }
+  .files { margin-top: 8px; display: grid; gap: 8px; }
+  .file-head { font-family: var(--mono); font-size: 11.5px; color: var(--accent); }
+{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <h2>Harness tree · {{ entry.name }} / {{ page.task }}</h2>
+  {% if page.tree_dir is not none %}
+  <span class="chip">{{ page.label or page.tree_dir.name }}</span>
+  <span class="chip">{{ page.tree_dir }}</span>
+  {% endif %}
+</div>
+{% if page.tree_dir is none %}
+  <p class="note">This task has no adopted harness tree on disk yet.</p>
+{% else %}
+<div class="hg">
+  {% for group, subtitle, color, views in page.groups %}
+  <div class="group g-{{ color }}">
+    <div class="gtitle">{{ group }}</div>
+    <div class="gsub">{{ subtitle }}</div>
+    {% for view in views %}
+      {% if view.present %}
+      <details class="comp">
+        <summary>
+          <span class="cn cn-{{ color }}">{{ view.spec.id }}</span>
+          <span><b>{{ view.spec.name }}</b><br><span class="file">{{ view.spec.display }}</span></span>
+          <span class="badge b-dim when">{{ view.spec.when }}</span>
+        </summary>
+        <div class="files">
+          {% for rel, content in view.files %}
+          <div class="file-head">{{ rel }}</div>
+          <pre>{{ content }}</pre>
+          {% endfor %}
+        </div>
+      </details>
+      {% else %}
+      <div class="comp">
+        <span class="cn">{{ view.spec.id }}</span>
+        <span><b>{{ view.spec.name }}</b><br><span class="file">{{ view.spec.display }}</span></span>
+        <span class="badge b-bad when">absent</span>
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
