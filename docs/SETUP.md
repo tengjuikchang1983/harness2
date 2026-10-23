@@ -140,6 +140,35 @@ changing either. `harness2-check` reports stale configuration until then.
 Codex runs with its sandbox disabled. Review the
 [executor network restrictions](EXPERIMENTS.md#web-access) before evaluation.
 
+## Web console and container
+
+A local web console over the runs tree ships in `harness2.webui`: namespace and
+task summaries, the c1-c8 harness tree per task, the experience library, and a
+demo runner:
+
+```bash
+uv pip install -e '.[render,webui]'
+harness2-webui                  # http://127.0.0.1:8788
+```
+
+The **Run demo** button (or `curl -X POST localhost:8788/actions/demo`) starts
+`harness2-demo --output runs/demo --k 2` as a subprocess and streams its log on
+the action page; only one action runs at a time and logs persist under
+`runs/_webui/`. The console reads `runs/` directly, so sweep and judging output
+appears as soon as the CLI commands finish.
+
+The same console runs containerized:
+
+```bash
+docker compose up --build      # http://127.0.0.1:8788
+```
+
+`docker-compose.yml` mounts `./runs` and `./dependencies` into the container so
+local run output and benchmark setups stay visible. `.env` is optional (copy it
+from `.env.example` when you configure model-backed runs); a commented read-only
+mount of `~/.config/gcloud` plus `GOOGLE_APPLICATION_CREDENTIALS` is included
+for later real runs.
+
 ## Network access during setup
 
 Setup downloads dependencies from the following hosts:

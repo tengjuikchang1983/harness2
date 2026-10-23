@@ -1,0 +1,19 @@
+# Web console service. `.env` is optional (env_file below uses required: false);
+# create it from .env.example when you configure model-backed runs.
+services:
+  webui:
+    build: .
+    image: harness2-plus
+    ports:
+      - "127.0.0.1:8788:8788"
+    volumes:
+      - ./runs:/app/runs
+      - ./dependencies:/app/dependencies
+    env_file:
+      - path: .env
+        required: false
+    # Real benchmark runs later also need read-only gcloud credentials:
+    # volumes:
+    #   - ~/.config/gcloud:/root/.config/gcloud:ro
+    # environment:
+    #   GOOGLE_APPLICATION_CREDENTIALS: /root/.config/gcloud/application_default_credentials.json

@@ -1,0 +1,8 @@
+.git
+.venv
+runs
+dependencies
+**/__pycache__
+*.egg-info
+assets/*.mp4
+assets/*.gif
