@@ -14,9 +14,10 @@
 
 """Read-only projections of the runs tree for the web console.
 
-Real sweep output (runs/adapt, runs/library) exists only after the first
-model-backed run, and demo.json is written at the very end of a demo, so every
-reader here tolerates missing directories and unreadable files.
+Real sweep output exists only after the first model-backed run, in legacy
+runs/adapt and runs/library trees or scoped benchmark/subset roots. demo.json
+is written at the very end of a demo, so every reader here tolerates missing
+directories and unreadable files.
 """
 
 from __future__ import annotations
@@ -265,29 +266,40 @@ def namespace_rows(ns_dir: Path, source: str) -> list[TaskRow]:
 
 
 def load_run_index(runs_dir: Path) -> list[NamespaceEntry]:
-    """RunIndex: the demo namespace first, then adapt/* in name order."""
+    """Demo first, then namespaces from legacy and scoped adapt roots in name order."""
     entries: list[NamespaceEntry] = []
     demo_dir = runs_dir / "demo"
     if (demo_dir / "demo.json").is_file():
         rows, done, failed = _demo_rows(demo_dir)
         entries.append(NamespaceEntry("demo", demo_dir, len(rows), done, failed, None, "demo"))
-    adapt = runs_dir / "adapt"
-    if adapt.is_dir():
-        for ns_dir in sorted(
-            path for path in adapt.iterdir() if path.is_dir() and not path.name.startswith("_")
-        ):
-            rows = namespace_rows(ns_dir, "adapt")
-            entries.append(
-                NamespaceEntry(
-                    name=ns_dir.name,
-                    path=ns_dir,
-                    n_tasks=len(rows),
-                    done=sum(1 for row in rows if row.status in DONE_STATUSES),
-                    failed=sum(1 for row in rows if row.status in FAILED_STATUSES),
-                    mean_score=mean_score(judged_rows(ns_dir)),
-                    source="adapt",
-                )
+    adapt_roots = [
+        path
+        for pattern in ("adapt", "*/adapt", "*/*/adapt")
+        for path in runs_dir.glob(pattern)
+        if path.is_dir()
+    ]
+    ns_dirs = sorted(
+        (
+            path
+            for adapt in adapt_roots
+            for path in adapt.iterdir()
+            if path.is_dir() and not path.name.startswith("_")
+        ),
+        key=lambda path: (path.name, path.as_posix()),
+    )
+    for ns_dir in ns_dirs:
+        rows = namespace_rows(ns_dir, "adapt")
+        entries.append(
+            NamespaceEntry(
+                name=ns_dir.name,
+                path=ns_dir,
+                n_tasks=len(rows),
+                done=sum(1 for row in rows if row.status in DONE_STATUSES),
+                failed=sum(1 for row in rows if row.status in FAILED_STATUSES),
+                mean_score=mean_score(judged_rows(ns_dir)),
+                source="adapt",
             )
+        )
     return entries
 
 
@@ -354,11 +366,13 @@ def load_harness_page(ns_dir: Path, source: str, task_id: str) -> HarnessPage | 
 
 
 def load_library(runs_dir: Path) -> list[LibraryDomain]:
+    """Legacy flat domains plus current per-run, per-mode domain libraries."""
     library = runs_dir / "library"
-    if not library.is_dir():
-        return []
-    domains = []
-    for domain in sorted(path for path in library.iterdir() if path.is_dir()):
+    domains: list[LibraryDomain] = []
+    legacy_domains = (
+        sorted(path for path in library.iterdir() if path.is_dir()) if library.is_dir() else []
+    )
+    for domain in legacy_domains:
         git_log = None
         git_versioned = (domain / ".git").exists()
         if git_versioned:
@@ -384,4 +398,27 @@ def load_library(runs_dir: Path) -> list[LibraryDomain]:
                 experience=experience,
             )
         )
-    return domains
+    for pattern in ("*/library", "*/*/library"):
+        for root in sorted(runs_dir.glob(pattern)):
+            if not root.is_dir():
+                continue
+            for index in sorted(root.glob("*/*/*/*/INDEX.md")):
+                if not index.is_file():
+                    continue
+                domain = index.parent
+                run, mode = domain.relative_to(root).parts[-3:-1]
+                sections = []
+                for path in sorted((domain / "harnesses").glob("*/EXPERIENCE.md")):
+                    if path.is_file():
+                        relative = path.relative_to(domain).as_posix()
+                        sections.append(f"### {relative}\n{_read_bounded(path)}")
+                domains.append(
+                    LibraryDomain(
+                        name=f"{domain.name} ({run}/{mode})",
+                        path=domain,
+                        git_versioned=False,
+                        git_log=None,
+                        experience="\n\n".join(sections) or None,
+                    )
+                )
+    return sorted(domains, key=lambda domain: (domain.name, domain.path.as_posix()))

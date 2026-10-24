@@ -2,7 +2,7 @@
 {% block content %}
 <div class="pagehead">
   <h2>Library</h2>
-  <span class="chip">{{ runs_dir }}/library</span>
+  <span class="chip">{{ runs_dir }}</span>
 </div>
 {% for domain in domains %}
   <div class="section-title">{{ domain.name }}</div>
@@ -21,6 +21,6 @@
     <pre>{{ domain.experience }}</pre>
   {% endif %}
 {% else %}
-  <p class="note">No library domains under {{ runs_dir }}/library yet.</p>
+  <p class="note">No library domains under {{ runs_dir }} yet.</p>
 {% endfor %}
 {% endblock %}

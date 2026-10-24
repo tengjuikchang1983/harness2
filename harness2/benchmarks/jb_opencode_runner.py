@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -150,9 +151,6 @@ def _stage(task_dir: Path, render_dir: Path, workspace: Path) -> None:
 
 def _command(cfg: Settings, workspace: Path, prompt: str, title: str) -> list[str]:
     cmd = [
-        "timeout",
-        "--kill-after=30s",
-        cfg.timeout_per_task,
         "bun",
         "run",
         "--cwd",
@@ -193,13 +191,30 @@ def _attempt(
     handle, raw = tempfile.mkstemp(prefix=f".{task_name}_a{attempt}.stdout.", dir=traj_file.parent)
     os.close(handle)
     with open(raw, "w", encoding="utf-8") as out, log_file.open("a", encoding="utf-8") as err:
-        code = subprocess.run(
+        process = subprocess.Popen(
             _command(cfg, workspace, prompt, title),
             cwd=cfg.opencode_dir,
             env={**os.environ, "OPENCODE_PERMISSION": _permission(workspace)},
             stdout=out,
             stderr=err,
-        ).returncode
+            start_new_session=True,
+        )
+        try:
+            code = process.wait(timeout=float(cfg.timeout_per_task))
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(process.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            try:
+                process.wait(timeout=30)
+            except subprocess.TimeoutExpired:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                process.wait()
+            code = 124
     with open(raw, encoding="utf-8", errors="replace") as src:
         traj_file.write_text(
             "".join(ln for ln in src if ln.startswith(EVENT_PREFIX)), encoding="utf-8"
