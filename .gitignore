@@ -1,0 +1,9 @@
+.env
+/runs/
+/dependencies/*
+!/dependencies/ASSETS.json
+!/dependencies/PINNED.md
+!/dependencies/README.md
+__pycache__/
+*.py[cod]
+*.egg-info/
